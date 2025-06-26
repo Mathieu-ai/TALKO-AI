@@ -3,6 +3,7 @@ import Conversation from '../models/conversation';
 import Message from '../models/message';
 import UserActivity from '../models/userActivity';
 import { getEmbeddings } from '../utils/nlpHelpers';
+import { createPrompt, createAnalysisPrompt, createRecommendationPrompt } from '../utils/promptHelpers';
 
 /**
  * Deep Learning Service using OpenAI's models
@@ -45,19 +46,18 @@ export class DeepLearningService {
         return acc;
       }, {});
       
-      // Use OpenAI to analyze the data
+      // Use enhanced prompt for analysis
+      const analysisPrompt = createAnalysisPrompt(
+        'Analyze user behavior patterns, topics of interest, and interaction styles',
+        `Conversation history: ${conversationTexts.substring(0, 4000)}. Feature usage stats: ${JSON.stringify(featureUsage)}`
+      );
+
       const response = await openai.chat.completions.create({
         model: config.textModel,
         messages: [
           {
-            role: 'system',
-            content: 'Respond always in md format. Use icons and fancy layout to respond. You are an AI data analyst. Analyze the provided user data to identify patterns, topics of interest, and interaction styles.'
-          },
-          {
             role: 'user',
-            content: `Analyze the following user data and provide insights. Conversation history: ${conversationTexts.substring(0, 4000)}. 
-                      Feature usage stats: ${JSON.stringify(featureUsage)}. 
-                      Identify: 1) Main topics of interest 2) Interaction patterns 3) Content preferences 4) Learning recommendations`
+            content: analysisPrompt
           }
         ],
         max_tokens: 1000
@@ -91,17 +91,18 @@ export class DeepLearningService {
       // Generate embeddings for the text
       const embeddings = await getEmbeddings(text.substring(0, 8000));
       
-      // Use OpenAI to extract topics
+      // Use enhanced prompt for topic extraction
+      const topicPrompt = createPrompt(
+        'Extract the main topics and themes from conversation text',
+        `Text to analyze: ${text.substring(0, 3000)}`
+      );
+
       const response = await openai.chat.completions.create({
         model: config.textModel,
         messages: [
           {
-            role: 'system',
-            content: 'You are an AI text analyst. Extract the main topics from the provided text.'
-          },
-          {
             role: 'user',
-            content: `Extract 5-8 main topics from this text: ${text.substring(0, 3000)}`
+            content: topicPrompt
           }
         ],
         max_tokens: 300
@@ -138,17 +139,18 @@ export class DeepLearningService {
       // Get topics from conversation titles
       const topics = conversations.map(conv => conv.title).join(', ');
       
-      // Generate recommendations
+      // Use enhanced prompt for recommendations
+      const recommendationPrompt = createRecommendationPrompt(
+        'Generate 5 personalized learning recommendations including resources, topics to explore, and skills to develop',
+        `User's conversation topics and interests: ${topics}`
+      );
+
       const response = await openai.chat.completions.create({
         model: config.textModel,
         messages: [
           {
-            role: 'system',
-            content: 'You are an AI learning assistant. Based on the user\'s interests, suggest learning resources and topics.'
-          },
-          {
             role: 'user',
-            content: `Based on these topics: ${topics}, suggest 5 learning recommendations, including resources, topics to explore, and skills to develop.`
+            content: recommendationPrompt
           }
         ],
         max_tokens: 500

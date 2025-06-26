@@ -3,6 +3,7 @@ import { openai, config } from '../config/openai';
 import { extractKeywords, getEmbeddings, removeDiacritics, slugify } from '../utils/nlpHelpers';
 import { incrementUserUsage } from '../services/usageService';
 import { FeatureType } from '../types/featureTypes';
+import { createPrompt } from '../utils/promptHelpers';
 
 /**
  * Controller for NLP operations
@@ -26,17 +27,18 @@ class NlpController {
       const userId = req.user._id || req.session.userId || 'anonymous';
       await incrementUserUsage(userId, FeatureType.NLP);
       
-      // Use OpenAI for sentiment analysis
+      // Use enhanced prompt for sentiment analysis
+      const sentimentPrompt = createPrompt(
+        'Analyze the sentiment of the provided text and categorize it as positive, negative, or neutral with a confidence score',
+        `Text to analyze: "${text}"`
+      );
+      
       const response = await openai.chat.completions.create({
         model: config.textModel,
         messages: [
           {
-            role: 'system',
-            content: 'You will respond with an object with two props : sentiment (the sentiment) and confidence (int). You are a sentiment analysis expert. Analyze the sentiment of the following text and categorize it as positive, negative, or neutral. Also provide a confidence score from 0 to 1.'
-          },
-          {
             role: 'user',
-            content: text
+            content: sentimentPrompt
           }
         ],
         max_tokens: 150
@@ -75,17 +77,18 @@ class NlpController {
       const userId = req.user._id|| req.session.userId || 'anonymous';
       await incrementUserUsage(userId, FeatureType.NLP);
       
-      // Use OpenAI for entity extraction
+      // Use enhanced prompt for entity extraction
+      const entityPrompt = createPrompt(
+        'Extract named entities from the text and categorize them (person, organization, location, date, etc.)',
+        `Text to analyze: "${text}"`
+      );
+      
       const response = await openai.chat.completions.create({
         model: config.textModel,
         messages: [
           {
-            role: 'system',
-            content: 'You are an entity extraction expert. Extract named entities from the following text and categorize them (person, organization, location, date, etc.). Return the result as a valid JSON array with "entity", "type", and "confidence" properties.'
-          },
-          {
             role: 'user',
-            content: text
+            content: entityPrompt
           }
         ],
         max_tokens: 500,
@@ -173,17 +176,18 @@ class NlpController {
       const userId = req.user._id|| req.session.userId || 'anonymous';
       await incrementUserUsage(userId, FeatureType.NLP);
       
-      // Use OpenAI for summarization
+      // Use enhanced prompt for summarization
+      const summaryPrompt = createPrompt(
+        `Summarize the provided text${maxLength ? ` in ${maxLength} words or less` : ''}`,
+        `Text to summarize: "${text}"`
+      );
+      
       const response = await openai.chat.completions.create({
         model: config.textModel,
         messages: [
           {
-            role: 'system',
-            content: `You are a text summarization expert. Summarize the following text${maxLength ? ` in ${maxLength} words or less` : ''}.`
-          },
-          {
             role: 'user',
-            content: text
+            content: summaryPrompt
           }
         ],
         max_tokens: 500

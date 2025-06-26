@@ -255,7 +255,9 @@ const UserInsights: React.FC = () => {
                 <span className="font-semibold text-gray-900 dark:text-white">Your Recommendations</span>
               </div>
               <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded p-3 mb-2 text-gray-700 dark:text-gray-200 text-sm whitespace-pre-line">
-                {recommendations.recommendations}
+                <ReactMarkdown>
+                  {recommendations.recommendations}
+                </ReactMarkdown>
               </div>
               {recommendations.basedOn && (
                 <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">

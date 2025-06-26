@@ -4,6 +4,7 @@ import path from 'path';
 import Document from '../models/document';
 import { extractTextFromPDF, processCsvFile } from '../utils/fileProcessing';
 import { openai } from '../config/openai';
+import { createSummarizationPrompt, createDocumentAnalysisPrompt } from '../utils/promptHelpers';
 
 const documentController = {
     // Process a document (general endpoint)
@@ -141,17 +142,15 @@ const documentController = {
                     });
             }
 
-            // Generate summary using OpenAI
+            // Generate summary using enhanced prompt
+            const summaryPrompt = createSummarizationPrompt(text);
+
             const response = await openai.chat.completions.create({
                 model: "gpt-3.5-turbo",
                 messages: [
                     {
-                        role: "system",
-                        content: "You are a document summarization assistant. Provide a concise summary of the text."
-                    },
-                    {
-                        role: "user", 
-                        content: `Summarize the following text: ${text.substring(0, 4000)}...`
+                        role: "user",
+                        content: summaryPrompt
                     }
                 ]
             });
@@ -240,19 +239,19 @@ const documentController = {
                     });
             }
 
-            // Generate analysis using OpenAI
+            // Generate analysis using enhanced prompt
+            const analysisPrompt = createDocumentAnalysisPrompt(
+                'document content',
+                text,
+                prompt
+            );
+
             const response = await openai.chat.completions.create({
                 model: "gpt-3.5-turbo",
                 messages: [
                     {
-                        role: "system",
-                        content: "You are a document analysis assistant. Analyze the provided document."
-                    },
-                    {
                         role: "user",
-                        content: prompt ? 
-                            `${prompt}\n\nDocument text:\n${text.substring(0, 4000)}...` : 
-                            `Analyze the following document text:\n\n${text.substring(0, 4000)}...`
+                        content: analysisPrompt
                     }
                 ]
             });
